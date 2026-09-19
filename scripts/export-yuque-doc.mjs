@@ -18,13 +18,13 @@ function usage() {
   npm run yuque:export -- <语雀文档URL> [选项]
 
 输出:
-  <out>/<name>/<file>
-  <out>/<name>/<assets-dir>/
+  <out>/<清洗后的文档名>/<清洗后的文档名>.md
+  <out>/<清洗后的文档名>/<assets-dir>/
 
 选项:
   --out <目录>          输出根目录，默认是 docs/notes。
   --name <目录名>       输出子目录名，默认使用文档标题。
-  --file <文件名>       Markdown 文件名，默认是 README.md。
+  --file <文件名>       Markdown 文件名，默认和输出子目录同名。
   --assets-dir <目录名> 图片目录名，位于文档目录下，默认是 assets。
   --force              如果输出目录已存在，先删除再重新导出。
   --dry-run            只读取元数据并打印计划，不写入文件。
@@ -35,7 +35,7 @@ function usage() {
 
 示例:
   npm run yuque:export -- 'https://www.yuque.com/user/book/doc'
-  npm run yuque:export -- '<url>' --name ai-game-guide --file guide.md --assets-dir images
+  npm run yuque:export -- '<url>' --name AI开发游戏保姆级教程 --file AI开发游戏保姆级教程.md
   npm run yuque:export -- '<url>' --dry-run --json
 `);
 }
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     url: '',
     outDir: DEFAULT_OUT_DIR,
     name: '',
-    fileName: 'README.md',
+    fileName: '',
     assetsDirName: 'assets',
     force: false,
     dryRun: false,
@@ -100,21 +100,21 @@ function parseArgs(argv) {
     if (arg === '--name') {
       const value = argv[index + 1];
       if (!value) fail('用法错误：--name 需要一个目录名', 2);
-      args.name = safePathSegment(value, '--name');
+      args.name = cleanPathSegment(value, '--name');
       index += 1;
       continue;
     }
     if (arg === '--file') {
       const value = argv[index + 1];
       if (!value) fail('用法错误：--file 需要一个文件名', 2);
-      args.fileName = safePathSegment(value, '--file');
+      args.fileName = cleanMarkdownFileName(value, '--file');
       index += 1;
       continue;
     }
     if (arg === '--assets-dir') {
       const value = argv[index + 1];
       if (!value) fail('用法错误：--assets-dir 需要一个目录名', 2);
-      args.assetsDirName = safePathSegment(value, '--assets-dir');
+      args.assetsDirName = cleanPathSegment(value, '--assets-dir');
       index += 1;
       continue;
     }
@@ -127,16 +127,35 @@ function parseArgs(argv) {
   return args;
 }
 
-// 输出文件名、assets 目录名这类参数只能是“单个路径段”。
-// 这样可以防止调用者传入 ../、a/b 之类路径，把文件写到预期目录外。
-function safePathSegment(value, label) {
+// 输出目录名、文件名、assets 目录名都必须是“单个路径段”。
+// 允许中文；空格和常见特殊字符会被清洗成更适合长期保存的连字符。
+// 但如果用户传入 ../ 或 a/b 这种路径，直接报错，防止写出预期目录。
+function cleanPathSegment(value, label, fallback = 'untitled') {
   if (value === '.' || value === '..' || value.includes('/') || value.includes('\\')) {
     fail(`用法错误：${label} 必须是单个路径名，不能是路径`, 2);
   }
   if (value.trim() !== value || value.trim() === '') {
     fail(`用法错误：${label} 不能为空，也不能包含首尾空格`, 2);
   }
-  return value;
+  return sanitizePathSegment(value, fallback);
+}
+
+function sanitizePathSegment(value, fallback = 'untitled') {
+  const cleaned = value
+    .trim()
+    .replace(/[\\/:*?"<>|#%{}^[\]`~!@$&=+;,，。、《》【】（）()]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^\.+/, '')
+    .replace(/[.-]+$/g, '');
+  return cleaned.slice(0, 80) || fallback;
+}
+
+function cleanMarkdownFileName(value, label) {
+  const ext = path.extname(value);
+  const base = ext ? value.slice(0, -ext.length) : value;
+  const cleanedBase = cleanPathSegment(base, label);
+  return `${cleanedBase}.md`;
 }
 
 function parseYuqueUrl(rawUrl) {
@@ -203,14 +222,7 @@ function extractAppData(html) {
 // 把文档标题变成默认目录名。这里不做拼音/翻译，避免引入额外依赖；
 // 用户如果需要稳定英文目录，应显式传 --name。
 function safeFileName(name, fallback) {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|#%{}^[\]`]+/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^\.+/, '')
-    .replace(/[.-]+$/g, '');
-  return cleaned.slice(0, 80) || fallback;
+  return sanitizePathSegment(name, fallback);
 }
 
 async function exists(target) {
@@ -562,9 +574,10 @@ async function main() {
   // 这样 AI agent 可以先 dry-run 读取同一份路径计划，再决定是否加 --force。
   const title = data.title || appData?.doc?.title || docUrl.docSlug;
   const outputName = args.name || safeFileName(title, docUrl.docSlug);
+  const markdownFileName = args.fileName || `${outputName}.md`;
   const documentDir = path.join(args.outDir, outputName);
   const assetsDir = path.join(documentDir, args.assetsDirName);
-  const readmePath = path.join(documentDir, args.fileName);
+  const readmePath = path.join(documentDir, markdownFileName);
   const sourceDir = path.join(documentDir, 'source');
   const documentExists = await exists(documentDir);
   const root = parseLake(data.content);
@@ -576,6 +589,8 @@ async function main() {
     title,
     source: docUrl.canonicalUrl,
     outputName,
+    markdownFileName,
+    assetsDirName: args.assetsDirName,
     documentDir,
     markdownPath: readmePath,
     assetsDir: args.skipImages ? null : assetsDir,

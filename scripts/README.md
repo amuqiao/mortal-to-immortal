@@ -25,7 +25,7 @@ Keep `package.json` readable. If a command grows beyond a one-line alias, move t
 | `npm run dev:restart` | `restart dev` | `scripts/dev.sh restart dev` | Stop then start the managed Vite process. |
 | `npm run dev:logs` | `logs dev` | `scripts/dev.sh logs dev` | Follow `.run/dev.log`. |
 | `npm run dev:raw` | none | Vite directly | Foreground fallback for debugging the scripts themselves. |
-| `npm run yuque:export -- <url>` | none | `scripts/export-yuque-doc.mjs` | 将已授权的公开语雀文档导出到 `docs/notes/<name>/<file>`，图片保存为本地 assets。 |
+| `npm run yuque:export -- <url>` | none | `scripts/export-yuque-doc.mjs` | 将已授权的公开语雀文档导出到 `docs/notes/<name>/<name>.md`，图片保存为同目录 `assets/`。 |
 
 `dev` is intentionally fixed to `127.0.0.1:8080` with `--strictPort`. Port conflicts fail instead of silently changing URLs.
 

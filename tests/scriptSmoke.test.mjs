@@ -54,7 +54,7 @@ test('dev.sh rejects missing service with exit code 2', async () => {
 test('export-yuque-doc help documents output layout without network access', async () => {
   const result = await execFileAsync('node', ['scripts/export-yuque-doc.mjs', '--help'], { cwd: ROOT });
 
-  assert.match(result.stdout, /<out>\/<name>\/<file>/);
+  assert.match(result.stdout, /<out>\/<清洗后的文档名>\/<清洗后的文档名>\.md/);
   assert.match(result.stdout, /--dry-run/);
   assert.match(result.stdout, /--json/);
   assert.match(result.stdout, /--force/);
@@ -66,6 +66,20 @@ test('export-yuque-doc short help is supported for agent discovery', async () =>
 
   assert.match(result.stdout, /用法:/);
   assert.match(result.stdout, /--assets-dir/);
+});
+
+test('export-yuque-doc rejects padded output names before network access', async () => {
+  try {
+    await execFileAsync(
+      'node',
+      ['scripts/export-yuque-doc.mjs', 'https://www.yuque.com/a/b/c', '--name', ' bad '],
+      { cwd: ROOT },
+    );
+    assert.fail('expected export-yuque-doc to reject padded output name');
+  } catch (error) {
+    assert.equal(error.code, 2);
+    assert.match(error.stderr, /--name 不能为空，也不能包含首尾空格/);
+  }
 });
 
 test('export-yuque-doc rejects non-Yuque URLs before network access', async () => {
