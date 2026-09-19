@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+.DS_Store
+*.log
+
+# 本地输入、输出和临时导出文件不要提交。
+inputs/
+outputs/
+exports/
+tmp/

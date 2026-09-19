@@ -1,7 +1,13 @@
 node_modules/
+.data/
 dist/
 submissions/
 .run/
-.codex/
+.codex/*
+!.codex/skills/
+!.codex/skills/**
+.codex/skills/**/node_modules/
+.codex/skills/**/dist/
+.codex/skills/**/.vite/
 .DS_Store
 *.log
