@@ -1,0 +1,7 @@
+node_modules/
+dist/
+submissions/
+.run/
+.codex/
+.DS_Store
+*.log
