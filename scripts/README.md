@@ -25,8 +25,19 @@ Keep `package.json` readable. If a command grows beyond a one-line alias, move t
 | `npm run dev:restart` | `restart dev` | `scripts/dev.sh restart dev` | Stop then start the managed Vite process. |
 | `npm run dev:logs` | `logs dev` | `scripts/dev.sh logs dev` | Follow `.run/dev.log`. |
 | `npm run dev:raw` | none | Vite directly | Foreground fallback for debugging the scripts themselves. |
+| `npm run yuque:export -- <url>` | none | `scripts/export-yuque-doc.mjs` | 将已授权的公开语雀文档导出到 `docs/notes/<name>/<file>`，图片保存为本地 assets。 |
 
 `dev` is intentionally fixed to `127.0.0.1:8080` with `--strictPort`. Port conflicts fail instead of silently changing URLs.
+
+Yuque export 是给人和 AI agent 共同使用的工具。它支持 `-h|--help` 查看中文帮助，支持 `--dry-run` 预检写入路径，支持 `--json` 输出机器可读结果。输出目录已存在时默认报错，除非显式传入 `--force`。
+
+Useful forms:
+
+```bash
+npm run yuque:export -- '<url>'
+npm run yuque:export -- '<url>' --name ai-game-guide --file guide.md --assets-dir images
+npm run yuque:export -- '<url>' --dry-run --json
+```
 
 ## Runtime Files
 

@@ -18,6 +18,7 @@
     "test": "node --test \"tests/**/*.test.*\"",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:size": "node scripts/build-zip.mjs --check-only",
+    "yuque:export": "node scripts/export-yuque-doc.mjs",
     "portal:upload": "node scripts/prepare-portal-upload-basic.mjs",
     "archive:offline": "npm run build && node scripts/build-zip.mjs",
     "package": "npm run archive:offline",

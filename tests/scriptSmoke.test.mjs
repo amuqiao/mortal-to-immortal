@@ -51,6 +51,47 @@ test('dev.sh rejects missing service with exit code 2', async () => {
   assert.match(result.stderr, /usage: \.\/scripts\/dev\.sh status dev/);
 });
 
+test('export-yuque-doc help documents output layout without network access', async () => {
+  const result = await execFileAsync('node', ['scripts/export-yuque-doc.mjs', '--help'], { cwd: ROOT });
+
+  assert.match(result.stdout, /<out>\/<name>\/<file>/);
+  assert.match(result.stdout, /--dry-run/);
+  assert.match(result.stdout, /--json/);
+  assert.match(result.stdout, /--force/);
+  assert.match(result.stdout, /选项:/);
+});
+
+test('export-yuque-doc short help is supported for agent discovery', async () => {
+  const result = await execFileAsync('node', ['scripts/export-yuque-doc.mjs', '-h'], { cwd: ROOT });
+
+  assert.match(result.stdout, /用法:/);
+  assert.match(result.stdout, /--assets-dir/);
+});
+
+test('export-yuque-doc rejects non-Yuque URLs before network access', async () => {
+  try {
+    await execFileAsync('node', ['scripts/export-yuque-doc.mjs', 'https://example.com/a/b/c'], { cwd: ROOT });
+    assert.fail('expected export-yuque-doc to reject non-Yuque URL');
+  } catch (error) {
+    assert.equal(error.code, 2);
+    assert.match(error.stderr, /不是语雀 URL/);
+  }
+});
+
+test('export-yuque-doc rejects path-like output file names before network access', async () => {
+  try {
+    await execFileAsync(
+      'node',
+      ['scripts/export-yuque-doc.mjs', 'https://www.yuque.com/a/b/c', '--file', '../bad.md'],
+      { cwd: ROOT },
+    );
+    assert.fail('expected export-yuque-doc to reject path-like file name');
+  } catch (error) {
+    assert.equal(error.code, 2);
+    assert.match(error.stderr, /--file 必须是单个路径名/);
+  }
+});
+
 test('package dev aliases route through the stable run.sh recipes', async () => {
   const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
 
@@ -60,4 +101,5 @@ test('package dev aliases route through the stable run.sh recipes', async () => 
   assert.equal(pkg.scripts['dev:restart'], 'bash scripts/run.sh restart dev');
   assert.equal(pkg.scripts['dev:logs'], 'bash scripts/run.sh logs dev');
   assert.equal(pkg.scripts['dev:raw'], 'vite --config vite/config.dev.mjs --host 127.0.0.1 --port 8080 --strictPort');
+  assert.equal(pkg.scripts['yuque:export'], 'node scripts/export-yuque-doc.mjs');
 });
